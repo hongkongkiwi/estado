@@ -4,7 +4,27 @@ main = "src/index.ts"
 compatibility_date = "2024-07-01"
 compatibility_flags = ["nodejs_compat"]
 
-route = { pattern = "estado.tatooine.dev", custom_domain = true }
+# Add a route for your own zone when deploying. Keep the example hostname out
+# of production configuration.
+# route = { pattern = "estado.example.com", custom_domain = true }
+
+# Configure these as Worker secrets. Do not put real credentials in this file.
+# npx wrangler secret put ESTADO_USERNAME
+# npx wrangler secret put ESTADO_PASSWORD
+# npx wrangler secret put ESTADO_STATE_KEY_RING
+# npx wrangler secret put ESTADO_STATE_ACTIVE_KEY_ID
+
+[[env.test.durable_objects.bindings]]
+name = "TF_STATE_LOCK"
+class_name = "DurableState"
+
+[[env.test.migrations]]
+tag = "v1.0.1-test"
+new_classes = ["DurableState"]
+
+[[env.test.r2_buckets]]
+binding = "TF_STATE_BUCKET"
+bucket_name = "estado-test"
 
 # Bind a Durable Object. Durable objects are a scale-to-zero compute primitive based on the actor model.
 # Durable Objects can live for as long as needed. Use these when you need a long-running "server", such as in realtime apps.

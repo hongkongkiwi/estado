@@ -4,4 +4,12 @@
 export interface Env {
   TF_STATE_LOCK: DurableObjectNamespace;
   TF_STATE_BUCKET: R2Bucket;
+  /** Worker secret containing the Terraform HTTP backend username. */
+  ESTADO_USERNAME?: string;
+  /** Worker secret containing the Terraform HTTP backend password. */
+  ESTADO_PASSWORD?: string;
+  /** JSON key ring mapping bounded key IDs to Base64-encoded 32-byte keys. */
+  ESTADO_STATE_KEY_RING?: string;
+  /** Active key ID from ESTADO_STATE_KEY_RING. */
+  ESTADO_STATE_ACTIVE_KEY_ID?: string;
 }

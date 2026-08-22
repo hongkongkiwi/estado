@@ -1,8 +1,7 @@
 // LockInfo stores lock metadata.
 //
-// Only operation and info are required to be set by the caller of Lock.
-// Most callers should use newLockInfo to create a LockInfo value with many
-// of the fields populated with suitable default values.
+// Terraform sends all of the metadata fields below. Estado validates each
+// field and caps its size before storing the lock in Durable Object storage.
 export interface LockInfo {
 	// Unique ID for the lock. newLockInfo provides a random ID, but this may
 	// be overridden by the lock implementation. The final value of ID will be
@@ -10,20 +9,26 @@ export interface LockInfo {
 	ID: string;
 
 	// Terraform operation, provided by the caller.
-	operation: string;
+	operation?: string;
+	Operation?: string;
 
 	// Extra information to store with the lock, provided by the caller.
-	info: string;
+	info?: string;
+	Info?: string;
 
 	// user@hostname when available
-	who: string;
+	who?: string;
+	Who?: string;
 
 	// Terraform version
-	version: string;
+	version?: string;
+	Version?: string;
 
 	// Time that the lock was taken.
-	created: Date;
+	created?: Date | string;
+	Created?: Date | string;
 
 	// Path to the state file when applicable. Set by the Lock implementation.
-	path: string;
+	path?: string;
+	Path?: string;
 }
