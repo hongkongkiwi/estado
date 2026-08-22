@@ -1,56 +1,40 @@
-import {
-  OpenAPIRoute,
-  OpenAPIRouteSchema,
-  Path,
-} from "@cloudflare/itty-router-openapi";
 import type { Env } from "../types/worker-configuration";
+import {
+  badRequest,
+  decryptState,
+  getStateKey,
+  MAX_ENVELOPE_BYTES,
+  serverError,
+} from "../state";
 
-export class StateFetch extends OpenAPIRoute {
-  static schema: OpenAPIRouteSchema = {
-    tags: ["States"],
-    summary: "Fetch the remote state.",
-    parameters: {
-      projectName: Path(String, {
-        description: "Project name",
-      }),
-    },
-    responses: {
-      "200": {
-        description: "Returns the state data",
-        schema: {
-          type: "object",
-          additionalProperties: true,
-        },
-      },
-      "400": {
-        description: "No project name specified",
-        schema: {
-          type: "string",
-        },
-      },
-    },
-  };
-
-  async handle(
-    request: Request,
-    env: Env,
-    context: ExecutionContext,
-    data: { params: { projectName: string } },
-  ) {
-    const { projectName } = data.params;
-    const key: string = `${projectName}.tfstate`;
-    const state: R2ObjectBody = await env.TF_STATE_BUCKET.get(key);
-
-    if (state === null) {
-      return new Response(null, { status: 204 });
+export class StateFetch {
+  async handle(request: Request, env: Env, _context: ExecutionContext, projectName: string) {
+    const key = getStateKey(projectName);
+    if (key === null) {
+      return badRequest("Invalid project name");
     }
 
-    console.log("Fetched state data for", projectName);
+    try {
+      const state: R2ObjectBody | null = await env.TF_STATE_BUCKET.get(key);
+      if (state === null) {
+        return new Response(null, { status: 204 });
+      }
+      if (state.size > MAX_ENVELOPE_BYTES) {
+        return serverError();
+      }
 
-    // Return the state JSON directly
-    return new Response(await state.text(), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+      const plaintext = await decryptState(
+        await state.text(),
+        key,
+        env.ESTADO_STATE_KEY_RING,
+        env.ESTADO_STATE_ACTIVE_KEY_ID,
+      );
+      return new Response(plaintext, {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+    } catch {
+      return serverError();
+    }
   }
 }
